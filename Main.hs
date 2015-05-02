@@ -31,13 +31,14 @@ connStr :: ConnectionString
 connStr = "host=localhost dbname=perscotty user=test password=test port=5433"
 
 main :: IO ()
-main = dbFunction
+main = do
+    dbFunction doMigrations
+    dbFunction doDbStuff
 
-dbFunction :: IO ()
-dbFunction = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> liftIO $
-    flip runSqlPersistMPool pool $ do
-        doMigrations
-        doDbStuff
+dbFunction query = runStderrLoggingT $ 
+        withPostgresqlPool connStr 10 $ 
+        \pool -> liftIO $ runSqlPersistMPool query pool
+
 
 
 doMigrations = runMigration migrateAll
