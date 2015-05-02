@@ -36,8 +36,13 @@ main = dbFunction
 dbFunction :: IO ()
 dbFunction = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> liftIO $
     flip runSqlPersistMPool pool $ do
-        runMigration migrateAll
+        doMigrations
+        doDbStuff
 
+
+doMigrations = runMigration migrateAll
+
+doDbStuff = do
         johnId <- insert $ Person "John Doe" $ Just 35
         janeId <- insert $ Person "Jane Doe" Nothing
 
