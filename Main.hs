@@ -11,6 +11,7 @@
 module Main where
 
 import           Control.Monad.IO.Class  (liftIO)
+import           Control.Monad.Logger    (runStderrLoggingT)
 import           Database.Persist
 import           Database.Persist.Postgresql
 import           Database.Persist.TH
@@ -26,21 +27,25 @@ BlogPost
     deriving Show
 |]
 
+connStr :: ConnectionString
+connStr = "host=localhost dbname=perscotty user=test password=test port=5433"
+
 main :: IO ()
-main = runSqlite ":memory:" $ do
-    runMigration migrateAll
+main = runStderrLoggingT $ withPostgresqlPool connStr 10 $ \pool -> liftIO $ do
+    flip runSqlPersistMPool pool $ do
+        runMigration migrateAll
 
-    johnId <- insert $ Person "John Doe" $ Just 35
-    janeId <- insert $ Person "Jane Doe" Nothing
+        johnId <- insert $ Person "John Doe" $ Just 35
+        janeId <- insert $ Person "Jane Doe" Nothing
 
-    insert $ BlogPost "My fr1st p0st" johnId
-    insert $ BlogPost "One more for good measure" johnId
+        insert $ BlogPost "My fr1st p0st" johnId
+        insert $ BlogPost "One more for good measure" johnId
 
-    oneJohnPost <- selectList [BlogPostAuthorId ==. johnId] [LimitTo 1]
-    liftIO $ print (oneJohnPost :: [Entity BlogPost])
+        oneJohnPost <- selectList [BlogPostAuthorId ==. johnId] [LimitTo 1]
+        liftIO $ print (oneJohnPost :: [Entity BlogPost])
 
-    john <- get johnId
-    liftIO $ print (john :: Maybe Person)
+        john <- get johnId
+        liftIO $ print (john :: Maybe Person)
 
-    delete janeId
-    deleteWhere [BlogPostAuthorId ==. johnId]
+        delete janeId
+        deleteWhere [BlogPostAuthorId ==. johnId]
