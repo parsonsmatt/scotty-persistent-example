@@ -22,7 +22,7 @@ executable dbtest
   build-depends:       base >=4.7 && <4.8 
                      , persistent >= 2.1 && <2.2
                      , persistent-template >= 2.1 && <2.2
-                     , persistent-sqlite >= 2.1 && <2.2
+                     , persistent-postgresql >= 2.1 && <2.2
                      , transformers
   -- hs-source-dirs:      
   default-language:    Haskell2010

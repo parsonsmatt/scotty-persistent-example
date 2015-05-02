@@ -12,7 +12,7 @@ module Main where
 
 import           Control.Monad.IO.Class  (liftIO)
 import           Database.Persist
-import           Database.Persist.Sqlite
+import           Database.Persist.Postgresql
 import           Database.Persist.TH
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
