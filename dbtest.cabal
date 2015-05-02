@@ -23,6 +23,9 @@ executable dbtest
                      , persistent >= 2.1 && <2.2
                      , persistent-template >= 2.1 && <2.2
                      , persistent-postgresql >= 2.1 && <2.2
+                     , scotty >= 0.9 && <0.10
+                     , text
+                     , wai-extra
                      , monad-logger
                      , transformers
   -- hs-source-dirs:      

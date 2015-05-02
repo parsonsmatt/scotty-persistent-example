@@ -12,9 +12,15 @@ module Main where
 
 import           Control.Monad.IO.Class  (liftIO)
 import           Control.Monad.Logger    (runStderrLoggingT)
+import           Data.Monoid ((<>))
+import qualified Data.Text.Lazy as T
+
 import           Database.Persist
 import           Database.Persist.Postgresql
 import           Database.Persist.TH
+
+import qualified Web.Scotty as S
+import           Network.Wai.Middleware.RequestLogger(logStdoutDev)
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 Person
@@ -31,15 +37,27 @@ connStr :: ConnectionString
 connStr = "host=localhost dbname=perscotty user=test password=test port=5433"
 
 main :: IO ()
-main = do
-    dbFunction doMigrations
-    dbFunction doDbStuff
+main = S.scotty 3000 $ do
+        S.middleware logStdoutDev
+        inAppDb $ do 
+            doMigrations
+            doDbStuff
+        S.get "/" $ S.html "Hello World"
+        S.get "/posts" $ do
+            posts :: Entity Blogpo<- inHandlerDb $ selectList [] []
+            S.html ("Posts!" <> (T.pack $ show $ length (posts :: [Entity BlogPost])))
+        S.get "/posts/:id" $ do
+            postId <- S.param "id"
+            findPost <- inHandlerDb $ get (toSqlKey (read postId))
+            S.html $ "You requested post: <br>" <> (T.pack $ show (findPost :: Maybe BlogPost))
+
+inHandlerDb = liftIO . dbFunction
+
+inAppDb = liftIO . dbFunction
 
 dbFunction query = runStderrLoggingT $ 
         withPostgresqlPool connStr 10 $ 
         \pool -> liftIO $ runSqlPersistMPool query pool
-
-
 
 doMigrations = runMigration migrateAll
 
@@ -56,6 +74,5 @@ doDbStuff = do
         john <- get johnId
         liftIO $ print (john :: Maybe Person)
 
-        delete janeId
-        deleteWhere [BlogPostAuthorId ==. johnId]
-
+        -- delete janeId
+        -- deleteWhere [BlogPostAuthorId ==. johnId]
