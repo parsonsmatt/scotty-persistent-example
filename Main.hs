@@ -39,20 +39,21 @@ connStr = "host=localhost dbname=perscotty user=test password=test port=5433"
 main :: IO ()
 main = do
     pool <- runStderrLoggingT $ createPostgresqlPool connStr 10
-    runDb doMigrations pool
-    runDb doDbStuff pool
+    let runDb' = runDb pool
+    runDb' doMigrations 
+    runDb pool doDbStuff 
     scotty 3000 $ do
         middleware logStdoutDev
         S.get "/" $ S.html "Hello World"
         S.get "/posts" $ do
-            posts <- runDb (selectList [] []) pool
+            posts <- runDb' (selectList [] [])
             html ("Posts!" <> T.pack (show $ length (posts :: [Entity BlogPost])))
         S.get "/posts/:id" $ do
             postId <- S.param "id"
-            findPost <- runDb (DB.get (toSqlKey (read postId))) pool
+            findPost <- runDb pool (DB.get (toSqlKey (read postId)))
             html $ "You requested post: <br>" <> T.pack (show (findPost :: Maybe BlogPost))
 
-runDb query pool = liftIO (runSqlPool query pool)
+runDb pool query = liftIO (runSqlPool query pool)
 
 doMigrations = runMigration migrateAll
 
