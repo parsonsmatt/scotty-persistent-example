@@ -16,10 +16,10 @@ import           Data.Monoid ((<>))
 import qualified Data.Text.Lazy as T
 
 import           Database.Persist
-import           Database.Persist.Postgresql
+import           Database.Persist.Postgresql as DB
 import           Database.Persist.TH
 
-import qualified Web.Scotty as S
+import Web.Scotty as S
 import           Network.Wai.Middleware.RequestLogger(logStdoutDev)
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
@@ -37,23 +37,24 @@ connStr :: ConnectionString
 connStr = "host=localhost dbname=perscotty user=test password=test port=5433"
 
 main :: IO ()
-main = S.scotty 3000 $ do
-        S.middleware logStdoutDev
-        inAppDb $ do 
-            doMigrations
-            doDbStuff
+main = do
+    pool <- runStderrLoggingT $ createPostgresqlPool connStr 10
+    runDb doMigrations pool
+    runDb doDbStuff pool
+    scotty 3000 $ do
+        middleware logStdoutDev
         S.get "/" $ S.html "Hello World"
         S.get "/posts" $ do
-            posts :: Entity Blogpo<- inHandlerDb $ selectList [] []
-            S.html ("Posts!" <> (T.pack $ show $ length (posts :: [Entity BlogPost])))
+            posts <- inHandlerDb $ selectList [] []
+            html ("Posts!" <> (T.pack $ show $ length (posts :: [Entity BlogPost])))
         S.get "/posts/:id" $ do
             postId <- S.param "id"
-            findPost <- inHandlerDb $ get (toSqlKey (read postId))
-            S.html $ "You requested post: <br>" <> (T.pack $ show (findPost :: Maybe BlogPost))
+            findPost <- inHandlerDb $ DB.get (toSqlKey (read postId))
+            html $ "You requested post: <br>" <> (T.pack $ show (findPost :: Maybe BlogPost))
 
 inHandlerDb = liftIO . dbFunction
 
-inAppDb = liftIO . dbFunction
+runDb query pool = liftIO (runSqlPool query pool)
 
 dbFunction query = runStderrLoggingT $ 
         withPostgresqlPool connStr 10 $ 
@@ -71,7 +72,7 @@ doDbStuff = do
         oneJohnPost <- selectList [BlogPostAuthorId ==. johnId] [LimitTo 1]
         liftIO $ print (oneJohnPost :: [Entity BlogPost])
 
-        john <- get johnId
+        john <- DB.get johnId
         liftIO $ print (john :: Maybe Person)
 
         -- delete janeId
