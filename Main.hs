@@ -45,20 +45,14 @@ main = do
         middleware logStdoutDev
         S.get "/" $ S.html "Hello World"
         S.get "/posts" $ do
-            posts <- inHandlerDb $ selectList [] []
-            html ("Posts!" <> (T.pack $ show $ length (posts :: [Entity BlogPost])))
+            posts <- runDb (selectList [] []) pool
+            html ("Posts!" <> T.pack (show $ length (posts :: [Entity BlogPost])))
         S.get "/posts/:id" $ do
             postId <- S.param "id"
-            findPost <- inHandlerDb $ DB.get (toSqlKey (read postId))
-            html $ "You requested post: <br>" <> (T.pack $ show (findPost :: Maybe BlogPost))
-
-inHandlerDb = liftIO . dbFunction
+            findPost <- runDb (DB.get (toSqlKey (read postId))) pool
+            html $ "You requested post: <br>" <> T.pack (show (findPost :: Maybe BlogPost))
 
 runDb query pool = liftIO (runSqlPool query pool)
-
-dbFunction query = runStderrLoggingT $ 
-        withPostgresqlPool connStr 10 $ 
-        \pool -> liftIO $ runSqlPersistMPool query pool
 
 doMigrations = runMigration migrateAll
 
