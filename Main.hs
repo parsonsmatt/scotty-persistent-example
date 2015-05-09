@@ -13,7 +13,7 @@ module Main where
 
 import           Control.Monad.IO.Class  (MonadIO, liftIO)
 import           Control.Monad.Trans.Reader (ReaderT)
-import           Control.Monad.Logger    (runStderrLoggingT)
+import           Control.Monad.Logger    (runStdoutLoggingT)
 import           Data.Monoid ((<>))
 import qualified Data.Text.Lazy as T
 
@@ -41,7 +41,7 @@ connStr = "host=localhost dbname=perscotty user=test password=test port=5433"
 
 main :: IO ()
 main = do
-    pool <- runStderrLoggingT $ createPostgresqlPool connStr 10
+    pool <- runStdoutLoggingT $ createPostgresqlPool connStr 10
     runDb pool doMigrations 
     runDb pool doDbStuff 
     scotty 3000 $ do
