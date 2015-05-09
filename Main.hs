@@ -1,4 +1,5 @@
 {-# LANGUAGE EmptyDataDecls             #-}
+{-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -10,11 +11,13 @@
 
 module Main where
 
-import           Control.Monad.IO.Class  (liftIO)
+import           Control.Monad.IO.Class  (MonadIO, liftIO)
+import           Control.Monad.Trans.Reader (ReaderT)
 import           Control.Monad.Logger    (runStderrLoggingT)
 import           Data.Monoid ((<>))
 import qualified Data.Text.Lazy as T
 
+import           Data.Pool (Pool)
 import           Database.Persist
 import           Database.Persist.Postgresql as DB
 import           Database.Persist.TH
@@ -52,13 +55,16 @@ main = do
             findPost <- runDb pool (DB.get (toSqlKey (read postId)))
             html $ "You requested post: <br>" <> T.pack (show (findPost :: Maybe BlogPost))
 
+runDb :: forall (m :: * -> *) a. MonadIO m => Pool SqlBackend -> SqlPersistT IO a -> m a 
 runDb pool query = liftIO (runSqlPool query pool)
 
+doMigrations :: ReaderT SqlBackend IO ()
 doMigrations = runMigration migrateAll
 
+doDbStuff :: ReaderT SqlBackend IO ()
 doDbStuff = do
         johnId <- insert $ Person "John Doe" $ Just 35
-        janeId <- insert $ Person "Jane Doe" Nothing
+        _ <- insert $ Person "Jane Doe" Nothing
 
         _ <- insert $ BlogPost "My fr1st p0st" johnId
         _ <- insert $ BlogPost "One more for good measure" johnId
