@@ -24,8 +24,8 @@ import           Database.Persist
 import           Database.Persist.Postgresql as DB
 import           Database.Persist.TH
 
-import           Web.Scotty as S
-import           Web.Scotty.Trans (scottyT)
+import qualified Web.Scotty
+import           Web.Scotty.Trans as S
 import           Network.Wai.Middleware.RequestLogger(logStdoutDev)
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
@@ -46,6 +46,8 @@ newtype ConfigM a = ConfigM
     } deriving (Applicative, Functor, Monad, 
                 MonadIO, MonadReader Config)
 
+type Error = T.Text
+
 connStr :: ConnectionString
 connStr = "host=localhost dbname=perscotty user=test password=test port=5432"
 
@@ -56,7 +58,7 @@ main = do
     let r m = runReaderT (runConfigM m) cfg
     runDb pool doMigrations 
     runDb pool doDbStuff 
-    scottyT 3000 r r $ do
+    scottyT 3000 id id $ do
         middleware logStdoutDev
         S.get "/" $ S.html "Hello World"
         S.get "/posts" $ do
@@ -67,13 +69,10 @@ main = do
             findPost <- runDb pool (DB.get (toSqlKey (read postId)))
             html $ "You requested post: <br>" <> T.pack (show (findPost :: Maybe BlogPost))
 
-runDb :: forall (m :: * -> *) a. MonadIO m => Pool SqlBackend -> SqlPersistT IO a -> m a 
 runDb pool query = liftIO (runSqlPool query pool)
 
-doMigrations :: ReaderT SqlBackend IO ()
 doMigrations = runMigration migrateAll
 
-doDbStuff :: ReaderT SqlBackend IO ()
 doDbStuff = do
         johnId <- insert $ Person "John Doe" $ Just 35
         _ <- insert $ Person "Jane Doe" Nothing
