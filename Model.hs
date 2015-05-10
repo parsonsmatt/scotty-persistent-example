@@ -8,8 +8,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 module Model
-    (migrateAll
-    ) where
+     where
 
 import           Database.Persist()
 import           Database.Persist.TH

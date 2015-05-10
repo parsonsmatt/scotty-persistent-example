@@ -41,7 +41,9 @@ main = do
     scottyT 3000 r r app
 
 app :: ScottyT T.Text ConfigM ()
-app = S.get "/" (html "hello world")
+app = do
+    middleware logStdoutDev
+    S.get "/" (html "hello world")
 
 -- application = do
 --         middleware logStdoutDev
