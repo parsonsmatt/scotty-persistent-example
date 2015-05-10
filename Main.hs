@@ -13,7 +13,7 @@ module Main where
 
 import           Control.Applicative        (Applicative)
 import           Control.Monad.IO.Class     (MonadIO, liftIO)
-import           Control.Monad.Trans.Reader (ReaderT)
+import           Control.Monad.Trans.Reader (ReaderT, runReaderT)
 import           Control.Monad.Reader.Class (MonadReader)
 import           Control.Monad.Logger       (runStdoutLoggingT)
 import           Data.Monoid ((<>))
@@ -52,9 +52,11 @@ connStr = "host=localhost dbname=perscotty user=test password=test port=5432"
 main :: IO ()
 main = do
     pool <- runStdoutLoggingT $ createPostgresqlPool connStr 10
+    let cfg = Config pool
+    let r m = runReaderT (runConfigM m) cfg
     runDb pool doMigrations 
     runDb pool doDbStuff 
-    scottyT 3000 id id $ do
+    scottyT 3000 r r $ do
         middleware logStdoutDev
         S.get "/" $ S.html "Hello World"
         S.get "/posts" $ do
