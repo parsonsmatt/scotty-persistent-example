@@ -25,6 +25,7 @@ executable dbtest
                      , persistent-postgresql >= 2.1 && <2.2
                      , scotty >= 0.9 && <0.10
                      , resource-pool
+                     , mtl
                      , text
                      , wai-extra
                      , monad-logger

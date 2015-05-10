@@ -11,9 +11,11 @@
 
 module Main where
 
-import           Control.Monad.IO.Class  (MonadIO, liftIO)
+import           Control.Applicative        (Applicative)
+import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Control.Monad.Trans.Reader (ReaderT)
-import           Control.Monad.Logger    (runStdoutLoggingT)
+import           Control.Monad.Reader.Class (MonadReader)
+import           Control.Monad.Logger       (runStdoutLoggingT)
 import           Data.Monoid ((<>))
 import qualified Data.Text.Lazy as T
 
@@ -22,7 +24,7 @@ import           Database.Persist
 import           Database.Persist.Postgresql as DB
 import           Database.Persist.TH
 
-import Web.Scotty as S
+import           Web.Scotty as S
 import           Network.Wai.Middleware.RequestLogger(logStdoutDev)
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
@@ -36,8 +38,15 @@ BlogPost
     deriving Show
 |]
 
+data Config = Config { getPool :: ConnectionPool }
+
+newtype ConfigM a = ConfigM
+    { runConfigM :: ReaderT Config IO a
+    } deriving (Applicative, Functor, Monad, 
+                MonadIO, MonadReader Config)
+
 connStr :: ConnectionString
-connStr = "host=localhost dbname=perscotty user=test password=test port=5433"
+connStr = "host=localhost dbname=perscotty user=test password=test port=5432"
 
 main :: IO ()
 main = do
