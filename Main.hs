@@ -47,8 +47,6 @@ newtype ConfigM b = ConfigM
     } deriving (Applicative, Functor, Monad, 
                 MonadIO, MonadReader Config)
 
-type Error = T.Text
-
 connStr :: ConnectionString
 connStr = "host=localhost dbname=perscotty user=test password=test port=5432"
 
@@ -61,7 +59,7 @@ main = do
 --     runDb pool doDbStuff 
     scottyT 3000 r r app
 
-app :: ScottyT Error ConfigM ()
+app :: ScottyT T.Text ConfigM ()
 app = S.get "/" $ S.html "Hello world"
 
 -- application :: Pool SqlBackend -> ScottyT Error ConfigM ()
