@@ -58,7 +58,9 @@ main = do
     let r m = runReaderT (runConfigM m) cfg
     runDb pool doMigrations 
     runDb pool doDbStuff 
-    scottyT 3000 id id $ do
+    scottyT 3000 id id application
+    
+application = do
         middleware logStdoutDev
         S.get "/" $ S.html "Hello World"
         S.get "/posts" $ do
