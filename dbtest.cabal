@@ -3,17 +3,21 @@
 
 name:                dbtest
 version:             0.1.0.0
--- synopsis:            
--- description:         
--- license:             
+synopsis:            A quick demonstration on setting up scotty and Persistent
+description:         A quick demonstration on setting up scotty and Persistent
+license:             MIT
 license-file:        LICENSE
 author:              Matt Parsons
 maintainer:          parsonsmatt@gmail.com
 -- copyright:           
--- category:            
+category:            Web
 build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
+
+source-repository head
+                        type:     git
+                        location: http://www.github.com/parsonsmatt/scotty-persistent-example
 
 executable dbtest
   main-is:             Main.hs
