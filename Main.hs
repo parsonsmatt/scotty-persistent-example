@@ -25,6 +25,7 @@ import           Database.Persist.Postgresql as DB
 import           Database.Persist.TH
 
 import           Web.Scotty as S
+import           Web.Scotty.Trans (scottyT)
 import           Network.Wai.Middleware.RequestLogger(logStdoutDev)
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
@@ -53,7 +54,7 @@ main = do
     pool <- runStdoutLoggingT $ createPostgresqlPool connStr 10
     runDb pool doMigrations 
     runDb pool doDbStuff 
-    scotty 3000 $ do
+    scottyT 3000 id id $ do
         middleware logStdoutDev
         S.get "/" $ S.html "Hello World"
         S.get "/posts" $ do
