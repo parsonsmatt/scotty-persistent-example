@@ -1,13 +1,6 @@
-{-# LANGUAGE EmptyDataDecls             #-}
-{-# LANGUAGE RankNTypes                 #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE QuasiQuotes                #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE TypeFamilies               #-}
 
 module Main where
 
@@ -20,24 +13,13 @@ import           Data.Monoid ((<>))
 import qualified Data.Text.Lazy as T
 
 import           Data.Pool (Pool)
-import           Database.Persist
 import           Database.Persist.Postgresql as DB
-import           Database.Persist.TH
 
 import qualified Web.Scotty
 import           Web.Scotty.Trans as S
 import           Network.Wai.Middleware.RequestLogger(logStdoutDev)
 
-share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
-Person
-    name String
-    age Int Maybe
-    deriving Show
-BlogPost
-    title String
-    authorId PersonId
-    deriving Show
-|]
+import Model
 
 data Config = Config { getPool :: ConnectionPool }
 
@@ -56,37 +38,38 @@ main = do
     pool <- runStdoutLoggingT $ createPostgresqlPool connStr 10
     let cfg = Config pool
     let r m = runReaderT (runConfigM m) cfg
-    runDb pool doMigrations 
-    runDb pool doDbStuff 
-    scottyT 3000 id id application
-    
-application = do
-        middleware logStdoutDev
-        S.get "/" $ S.html "Hello World"
-        S.get "/posts" $ do
-            posts <- runDb pool (selectList [] [])
-            html ("Posts!" <> T.pack (show $ length (posts :: [Entity BlogPost])))
-        S.get "/posts/:id" $ do
-            postId <- S.param "id"
-            findPost <- runDb pool (DB.get (toSqlKey (read postId)))
-            html $ "You requested post: <br>" <> T.pack (show (findPost :: Maybe BlogPost))
+    scottyT 3000 r r app
 
-runDb pool query = liftIO (runSqlPool query pool)
+app :: ScottyT T.Text ConfigM ()
+app = S.get "/" (html "hello world")
 
-doMigrations = runMigration migrateAll
-
-doDbStuff = do
-        johnId <- insert $ Person "John Doe" $ Just 35
-        _ <- insert $ Person "Jane Doe" Nothing
-
-        _ <- insert $ BlogPost "My fr1st p0st" johnId
-        _ <- insert $ BlogPost "One more for good measure" johnId
-
-        oneJohnPost <- selectList [BlogPostAuthorId ==. johnId] [LimitTo 1]
-        liftIO $ print (oneJohnPost :: [Entity BlogPost])
-
-        john <- DB.get johnId
-        liftIO $ print (john :: Maybe Person)
-
-        -- delete janeId
-        -- deleteWhere [BlogPostAuthorId ==. johnId]
+-- application = do
+--         middleware logStdoutDev
+--         S.get "/" $ S.html "Hello World"
+--         S.get "/posts" $ do
+--             posts <- runDb pool (selectList [] [])
+--             html ("Posts!" <> T.pack (show $ length (posts :: [Entity BlogPost])))
+--         S.get "/posts/:id" $ do
+--             postId <- S.param "id"
+--             findPost <- runDb pool (DB.get (toSqlKey (read postId)))
+--             html $ "You requested post: <br>" <> T.pack (show (findPost :: Maybe BlogPost))
+-- 
+-- runDb pool query = liftIO (runSqlPool query pool)
+-- 
+-- doMigrations = runMigration migrateAll
+-- 
+-- doDbStuff = do
+--         johnId <- insert $ Person "John Doe" $ Just 35
+--         _ <- insert $ Person "Jane Doe" Nothing
+-- 
+--         _ <- insert $ BlogPost "My fr1st p0st" johnId
+--         _ <- insert $ BlogPost "One more for good measure" johnId
+-- 
+--         oneJohnPost <- selectList [BlogPostAuthorId ==. johnId] [LimitTo 1]
+--         liftIO $ print (oneJohnPost :: [Entity BlogPost])
+-- 
+--         john <- DB.get johnId
+--         liftIO $ print (john :: Maybe Person)
+-- 
+--         -- delete janeId
+--         -- deleteWhere [BlogPostAuthorId ==. johnId]
