@@ -55,41 +55,7 @@ main = do
     pool <- runStdoutLoggingT $ createPostgresqlPool connStr 10
     let cfg = Config pool
         r m = runReaderT (runConfigM m) cfg
---     runDb pool doMigrations 
---     runDb pool doDbStuff 
     scottyT 3000 r r app
 
 app :: ScottyT T.Text ConfigM ()
 app = S.get "/" $ S.html "Hello world"
-
--- application :: Pool SqlBackend -> ScottyT Error ConfigM ()
--- application pool = do
---         middleware logStdoutDev
---         S.get "/" $ S.html "Hello World"
---         S.get "/posts" $ do
---             posts <- runDb pool (selectList [] [])
---             html ("Posts!" <> T.pack (show $ length (posts :: [Entity BlogPost])))
---         S.get "/posts/:id" $ do
---             postId <- S.param "id"
---             findPost <- runDb pool (DB.get (toSqlKey (read postId)))
---             html $ "You requested post: <br>" <> T.pack (show (findPost :: Maybe BlogPost))
--- 
--- runDb pool query = liftIO (runSqlPool query pool)
--- 
--- doMigrations = runMigration migrateAll
--- 
--- doDbStuff = do
---         johnId <- insert $ Person "John Doe" $ Just 35
---         _ <- insert $ Person "Jane Doe" Nothing
--- 
---         _ <- insert $ BlogPost "My fr1st p0st" johnId
---         _ <- insert $ BlogPost "One more for good measure" johnId
--- 
---         oneJohnPost <- selectList [BlogPostAuthorId ==. johnId] [LimitTo 1]
---         liftIO $ print (oneJohnPost :: [Entity BlogPost])
--- 
---         john <- DB.get johnId
---         liftIO $ print (john :: Maybe Person)
--- 
---         -- delete janeId
---         -- deleteWhere [BlogPostAuthorId ==. johnId]
